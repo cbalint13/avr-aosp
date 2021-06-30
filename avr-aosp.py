@@ -1,8 +1,8 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 """
  *
- * Copyright (c) 2018
+ * Copyright (c) 2018,2021
  *   Balint Cristian <cristian dot balint at gmail dot com>
  *
  * AVR AOSP like programmer (see AVR911)
@@ -57,87 +57,85 @@ def TermProgress( dfComplete, pszMessage, pProgressArg ):
 
 def GetParams( fd ):
 
-  print
-  print "INFO"
-  print
+  print ()
+  print ("INFO")
+  print ()
 
-  fd.write("S")
+  fd.write(b'S')
   fd.flush()
-  print "  S =", fd.read(7), "\t#programmer id"
+  print ("  S =", fd.read(7).decode(), "\t#programmer id")
 
-  fd.write("V")
+  fd.write(b'V')
   fd.flush()
-  print "  V =", fd.read(2), "\t#software version"
+  print ("  V =", fd.read(2).decode(), "\t#software version")
 
-  fd.write("v")
+  fd.write(b'v')
   fd.flush()
-  print "  v =", fd.read(1), "\t#hardware version"
+  print ("  v =", fd.read(1).decode(), "\t#hardware version")
 
-  fd.write("p")
+  fd.write(b'p')
   fd.flush()
-  print "  p =", fd.read(1), "\t#programmer type"
+  print ("  p =", fd.read(1).decode(), "\t#programmer type")
 
-  fd.write("a")
+  fd.write(b'a')
   fd.flush()
-  print "  a =", fd.read(1), "\t#autoincrement support"
+  print ("  a =", fd.read(1).decode(), "\t#autoincrement support")
 
-  fd.write("b")
+  fd.write(b'b')
   fd.flush()
-  print "  b =", fd.read(1), "\t#block mode support"
+  print ("  b =", fd.read(1).decode(), "\t#block mode support")
 
-  fd.write("t")
+  fd.write(b't')
   fd.flush()
-  print "  t = [%s]" % str(binascii.hexlify(fd.read(2))), "\t#supported device code"
+  print ("  t = [%s]" % str(binascii.hexlify(fd.read(2)).decode()), "\t#supported device code")
 
-  fd.write("s")
+  fd.write(b's')
   fd.flush()
-  print "  s =", str(binascii.hexlify(fd.read(3))), "\t#signature"
+  print ("  s =", str(binascii.hexlify(fd.read(3)).decode()), "\t#signature")
 
-  fd.write("N")
+  fd.write(b'N')
   fd.flush()
-  print "  N =", fd.read(1), "\t#high fuse bits"
+  print ("  N =", fd.read(1).decode(), "\t#high fuse bits")
 
-  fd.write("F")
+  fd.write(b'F')
   fd.flush()
-  print "  F =", fd.read(1), "\t#low fuse bits"
+  print ("  F =", fd.read(1).decode(), "\t#low fuse bits")
 
-  fd.write("r")
+  fd.write(b'r')
   fd.flush()
-  print "  r =", fd.read(1), "\t#lock bits"
+  print ("  r =", fd.read(1).decode(), "\t#lock bits")
 
-  fd.write("Q")
+  fd.write(b'Q')
   fd.flush()
-  print "  Q =", fd.read(1), "\t#extended fuse bits"
-
+  print ("  Q =", fd.read(1).decode(), "\t#extended fuse bits")
 
 def SetAddr( fd, addr):
 
-    hexadr = "%04x" % addr
-    addrhi = hexadr[0:2]
-    addrlo = hexadr[2:4]
+    hexaddr = "%04x" % addr
+    addrhi = int(hexaddr[0:2], 16)
+    addrlo = int(hexaddr[2:4], 16)
 
     if ( addr < 0x10000 ):
-      fd.write("A%c%c" % (addrhi.decode('hex'), addrlo.decode('hex')))
+      fd.write(b'A%c%c' % (addrhi,addrlo))
     else:
-      fd.write("H%c%c" % (addrhi.decode('hex'), addrlo.decode('hex')))
+      fd.write(b'A%c%c' % (addrhi,addrlo))
     fd.flush()
-    if (fd.read(1) != '\r'):
-      print "ERROR: Address not acknowleged."
-      sys.exit(-1)
 
+    if ( fd.read(1) != b'\r'):
+      print ("ERROR: Address not acknowleged.")
+      sys.exit(-1)
 
 def ReadPGMMem( fd, filename, morg, mend ):
 
   mem = []
 
-  print
-  print "READ program memory [0x%04X - 0x%04X] @%s #%i bytes" % (morg,mend,filename,(mend-morg)*2)
+  print ()
+  print ("READ program memory [0x%04X - 0x%04X] @%s #%i bytes" % (morg,mend,filename,(mend-morg)*2))
 
   for addr in range(morg, mend):
-
     SetAddr( fd, addr )
 
-    fd.write("R")
+    fd.write(b'R')
     fd.flush()
     data = fd.read(2)
 
@@ -155,8 +153,8 @@ def ReadPGMMem( fd, filename, morg, mend ):
     addr = morg + i
     indx = addr - morg
 
-    memlo = ord( mem[indx][1] )
-    memhi = ord( mem[indx][0] )
+    memlo = mem[indx][1]
+    memhi = mem[indx][0]
 
     if ( addr % 0x8 == 0 ):
 
@@ -179,21 +177,21 @@ def ReadPGMMem( fd, filename, morg, mend ):
   fl.write( ":00000001FF\r\n" )
   fl.flush()
 
-  print
+  print ()
 
   fl.close()
 
 
 def EraseFlash( fd ):
 
-  print
-  print "ERASE program memory"
-  print
+  print ()
+  print ("ERASE program memory")
+  print ()
 
-  fd.write("e")
+  fd.write(b'e')
   fd.flush()
-  if (fd.read(1) != '\r'):
-    print "ERROR: Flash erase not acknowleged."
+  if (fd.read(1) != b'\r'):
+    print ("ERROR: Flash erase not acknowleged.")
     sys.exit(-1)
 
 
@@ -206,8 +204,8 @@ def BurnHexFile( fd, filename ):
       alen = alen + int(l[1:3], 16)
   fl.close()
 
-  print
-  print "WRITE program memory [%s] #%i bytes" % (filename, alen)
+  print ()
+  print ("WRITE program memory [%s] #%i bytes" % (filename, alen))
 
   fl = open(filename, 'r')
 
@@ -234,31 +232,31 @@ def BurnHexFile( fd, filename ):
 
         SetAddr( fd, addr+b >> 1 )
 
-        fd.write("c%c" % chr(bytelo))
+        fd.write(b'c%c' % bytelo)
         fd.flush()
-        if (fd.read(1) != '\r'):
-          print "ERROR: Write not acknowleged."
+        if (fd.read(1) != b'\r'):
+          print ("ERROR: Write not acknowleged.")
           sys.exit(-1)
 
-        fd.write("C%c" % chr(bytehi))
+        fd.write(b'C%c' % bytehi)
         fd.flush()
-        if (fd.read(1) != '\r'):
-          print "ERROR: Write not acknowleged."
+        if (fd.read(1) != b'\r'):
+          print ("ERROR: Write not acknowleged.")
           sys.exit(-1)
 
         SetAddr( fd, addr+b >> 1 )
 
-        fd.write("m")
+        fd.write(b'm')
         fd.flush()
-        if (fd.read(1) != '\r'):
-          print "ERROR: Flash page not acknowleged."
+        if (fd.read(1) != b'\r'):
+          print ("ERROR: Flash page not acknowleged.")
           sys.exit(-1)
 
     TermProgress( float( addr+b ) / float( alen ), None, None )
 
   TermProgress( 1.0, None, None )
 
-  print
+  print ()
 
   fl.close()
 
@@ -266,7 +264,7 @@ def BurnHexFile( fd, filename ):
 def main():
 
   if (len(sys.argv)<3):
-    print "Usage: %s -op read|write|erase -start <0x0000> -stop <0x1FFFF> -file intel.hex <-serial /dev/ttyUSB0> <-baud 19200>" % (sys.argv[0])
+    print ("Usage: %s -op read|write|erase -start <0x0000> -stop <0x1FFFF> -file intel.hex <-serial /dev/ttyUSB0> <-baud 19200>" % (sys.argv[0]))
     sys.exit(-1)
 
   baud = 19200
